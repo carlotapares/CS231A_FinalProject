@@ -21,6 +21,6 @@ Ben Alexander, Carlota Parés-Morlans
     |-- ./src/utils
     |-- ./src/EfficientPose Inference.ipynb
     |-- ./src/Hourglass Inference.ipynb
-    `-- ./src/yolov5-master
+    `-- ./src/SemGCN.ipynb
 ```
 ![image](https://drive.google.com/uc?export=view&id=1y_1m38yJwuhZuDKSdHbTQp6fBZjMXTIz)
