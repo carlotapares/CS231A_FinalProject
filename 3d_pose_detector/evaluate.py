@@ -22,7 +22,7 @@ from models.martinez_model import MartinezModel, init_weights
 def evaluate(data_loader, model, device):
     batch_time = AverageMeter()
     data_time = AverageMeter()
-    epoch_loss_3d_pos = AverageMeter()
+    epoch_error_3d_pos = AverageMeter()
 
     # Switch to evaluate mode
     torch.set_grad_enabled(False)
@@ -38,7 +38,7 @@ def evaluate(data_loader, model, device):
         outputs_3d = model(inputs_2d.view(num_poses, -1)).view(num_poses, -1, 3).cpu()
         outputs_3d = torch.cat([torch.zeros(num_poses, 1, outputs_3d.size(2)), outputs_3d], 1)  # Pad hip joint (0,0,0)
 
-        epoch_loss_3d_pos.update(mpjpe(outputs_3d, targets_3d).item() * 1000.0, num_poses)
+        epoch_error_3d_pos.update(mpjpe(outputs_3d, targets_3d).item() * 1000.0, num_poses)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -46,9 +46,9 @@ def evaluate(data_loader, model, device):
 
         print('({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | MPJPE: {e1: .4f}' \
             .format(batch=i + 1, size=len(data_loader), data=data_time.avg, bt=batch_time.avg,
-                    e1=epoch_loss_3d_pos.avg))
+                    e1=epoch_error_3d_pos.avg))
 
-    return epoch_loss_3d_pos.avg
+    return epoch_error_3d_pos.avg
 
 
 def main():
@@ -60,7 +60,6 @@ def main():
     print('==> Loading dataset...')
     if config.dataset == "h36m":
         dataset = Human36mDataset('data/data_3d_h36m.npz')
-        subjects_test = TEST_SUBJECTS
 
         dataset = read_3d_data(dataset)
         
@@ -104,7 +103,7 @@ def main():
     errors_p1 = np.zeros(len(action_filter))
 
     for i, action in enumerate(action_filter):
-        poses_valid, poses_valid_2d, actions_valid = fetch(subjects_test, dataset, keypoints, [action])
+        poses_valid, poses_valid_2d, actions_valid = fetch(TEST_SUBJECTS, dataset, keypoints, [action])
         
         valid_loader = DataLoader(PoseGenerator(poses_valid, poses_valid_2d, actions_valid),
                                     batch_size=config.batch_size, shuffle=False,

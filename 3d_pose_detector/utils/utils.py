@@ -30,9 +30,12 @@ def lr_decay(optimizer, step, lr, decay_step, gamma):
     return lr
 
 
-def save_ckpt(state, ckpt_path, suffix=None):
+def save_ckpt(state, ckpt_path, config, suffix=None, delete_previous=False):
     if suffix is None:
         suffix = 'epoch_{:04d}'.format(state['epoch'])
+        if delete_previous:
+            delete_suffix = 'epoch_{:04d}'.format(state['epoch'] - config.save_every)
+            os.remove(os.path.join(ckpt_path, 'ckpt_{}.pth.tar'.format(delete_suffix)))
 
     file_path = os.path.join(ckpt_path, 'ckpt_{}.pth.tar'.format(suffix))
     torch.save(state, file_path)
