@@ -1,5 +1,6 @@
 # from __future__ import print_function, absolute_import, division
 
+import json
 import os
 import time
 import datetime
@@ -85,6 +86,7 @@ def main():
             os.makedirs(ckpt_dir_path)
             print('==> Making checkpoint dir: {}'.format(ckpt_dir_path))
 
+    json.dump(config, open(os.path.join(ckpt_dir_path, 'config.json'), 'w'))
     logger = Logger(os.path.join(ckpt_dir_path, 'logs'))
 
     poses_train, poses_train_2d, actions_train = fetch(TRAIN_SUBJECTS, dataset, keypoints, action_filter)
