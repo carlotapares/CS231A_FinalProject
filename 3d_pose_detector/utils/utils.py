@@ -35,7 +35,9 @@ def save_ckpt(state, ckpt_path, config, suffix=None, delete_previous=False):
         suffix = 'epoch_{:04d}'.format(state['epoch'])
         if delete_previous:
             delete_suffix = 'epoch_{:04d}'.format(state['epoch'] - config.save_every)
-            os.remove(os.path.join(ckpt_path, 'ckpt_{}.pth.tar'.format(delete_suffix)))
+            delete_file = os.path.join(ckpt_path, 'ckpt_{}.pth.tar'.format(delete_suffix))
+            if os.path.exists(delete_file):
+                os.remove(delete_file)
 
     file_path = os.path.join(ckpt_path, 'ckpt_{}.pth.tar'.format(suffix))
     torch.save(state, file_path)

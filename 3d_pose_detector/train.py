@@ -56,7 +56,7 @@ def main():
     model.apply(init_weights)
     # print("==> Total parameters: {:.2f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
 
-    loss = nn.MSELoss().to(device)
+    loss = nn.MSELoss(reduction='mean').to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.lr)
 
     # Optionally resume from a checkpoint
@@ -80,16 +80,20 @@ def main():
         error_best = None
         glob_step = 0
         lr_now = config.lr
-        time_for_name = datetime.datetime.now().isoformat()
+        time_for_name = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         ckpt_dir_path = os.path.join('checkpoints', time_for_name)
         log_dir_path = os.path.join('logs', time_for_name)
 
         if not os.path.exists('logs'):
             os.makedirs('logs')
 
+        if not os.path.exists('checkpoints'):
+            os.makedirs('checkpoints')
+
         if not os.path.exists(ckpt_dir_path):
             os.makedirs(ckpt_dir_path)
             print('==> Making checkpoint dir: {}'.format(ckpt_dir_path))
+
         if not os.path.exists(log_dir_path):
             os.makedirs(log_dir_path)
             print('==> Making log dir: {}'.format(log_dir_path))
@@ -127,10 +131,6 @@ def main():
             save_ckpt({'epoch': epoch + 1, 'lr': lr_now, 'step': glob_step, 'state_dict': model.state_dict(),
                        'optimizer': optimizer.state_dict(), 'error': error_eval_p1}, ckpt_dir_path, config, delete_previous=True)
 
-    logger.close()
-    # logger.plot(['loss_train', 'error_eval_p1'])
-    # savefig(os.path.join(ckpt_dir_path, 'log.eps'))
-
 
 def train(data_loader, model, loss, optimizer, device, logger, lr_init, lr_now, step, decay, gamma, max_norm):
     batch_time = AverageMeter()
@@ -157,11 +157,13 @@ def train(data_loader, model, loss, optimizer, device, logger, lr_init, lr_now, 
         optimizer.zero_grad()
         loss_3d_pos = loss(outputs_3d, targets_3d)
         loss_3d_pos.backward()
+
         if max_norm:
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
+        
         optimizer.step()
-
-        epoch_loss_3d_pos.update(loss_3d_pos.item(), num_poses)
+        reduced_loss = loss_3d_pos.item()
+        epoch_loss_3d_pos.update(reduced_loss, num_poses)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -172,7 +174,7 @@ def train(data_loader, model, loss, optimizer, device, logger, lr_init, lr_now, 
                 .format(batch=i + 1, size=len(data_loader), data=data_time.avg, bt=batch_time.avg,
                         loss=epoch_loss_3d_pos.avg))
         
-        logger.log_training(epoch_loss_3d_pos.avg, lr_now, batch_time.avg, step)
+        logger.log_training(reduced_loss, lr_now, batch_time.avg, step)
 
     return lr_now, step
 

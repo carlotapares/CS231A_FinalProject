@@ -2,6 +2,7 @@ h5py==2.9.0
 matplotlib
 numpy
 scipy
+tensorboard
 torch
 torchvision
 yacs

@@ -14,7 +14,7 @@ _C.max_norm = True  # whether to use the max norm constraint on the weights of e
 
 
 # Model arguments
-_C.batch_size = 64
+_C.batch_size = 128
 _C.epochs = 200
 _C.num_workers = 8
 _C.lr = 1e-3
