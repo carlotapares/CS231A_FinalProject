@@ -8,7 +8,7 @@ _C.dataset = 'h36m'
 _C.actions = '*' # which actions to test on. * means all
 _C.eval_checkpoint = 'checkpoints/ckpt_linear.pth.tar'  # checkpoint to evaluate from
 _C.train_checkpoint = '' # checkpoint to continue training from
-_C.device = 'cuda'
+_C.device = 'cpu'
 _C.save_every = 10
 
 

@@ -80,14 +80,22 @@ def main():
         error_best = None
         glob_step = 0
         lr_now = config.lr
-        ckpt_dir_path = os.path.join('checkpoints', datetime.datetime.now().isoformat())
+        time_for_name = datetime.datetime.now().isoformat()
+        ckpt_dir_path = os.path.join('checkpoints', time_for_name)
+        log_dir_path = os.path.join('logs', time_for_name)
+
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
 
         if not os.path.exists(ckpt_dir_path):
             os.makedirs(ckpt_dir_path)
             print('==> Making checkpoint dir: {}'.format(ckpt_dir_path))
+        if not os.path.exists(log_dir_path):
+            os.makedirs(log_dir_path)
+            print('==> Making log dir: {}'.format(log_dir_path))
 
     json.dump(config, open(os.path.join(ckpt_dir_path, 'config.json'), 'w'))
-    logger = Logger(os.path.join(ckpt_dir_path, 'logs'))
+    logger = Logger(log_dir_path)
 
     poses_train, poses_train_2d, actions_train = fetch(TRAIN_SUBJECTS, dataset, keypoints, action_filter)
     train_loader = DataLoader(PoseGenerator(poses_train, poses_train_2d, actions_train), batch_size=config.batch_size,
@@ -159,7 +167,7 @@ def train(data_loader, model, loss, optimizer, device, logger, lr_init, lr_now, 
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if step % 10 == 0:
+        if step % 1000 == 0:
             print('({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | Loss: {loss: .4f}' \
                 .format(batch=i + 1, size=len(data_loader), data=data_time.avg, bt=batch_time.avg,
                         loss=epoch_loss_3d_pos.avg))
