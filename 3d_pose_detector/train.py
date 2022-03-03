@@ -110,7 +110,7 @@ def main():
 
         # Train
         lr_now, glob_step = train(train_loader, model, loss, optimizer, device, logger, config.lr, lr_now,
-                                              glob_step, config.lr_decay, config.lr_gamma)
+                                              glob_step, config.lr_decay, config.lr_gamma, config.max_norm)
 
         # Evaluate
         error_eval_p1 = evaluate(valid_loader, model, device)
@@ -132,7 +132,7 @@ def main():
     # savefig(os.path.join(ckpt_dir_path, 'log.eps'))
 
 
-def train(data_loader, model, loss, optimizer, device, logger, lr_init, lr_now, step, decay, gamma):
+def train(data_loader, model, loss, optimizer, device, logger, lr_init, lr_now, step, decay, gamma, max_norm):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     epoch_loss_3d_pos = AverageMeter()
@@ -157,8 +157,8 @@ def train(data_loader, model, loss, optimizer, device, logger, lr_init, lr_now, 
         optimizer.zero_grad()
         loss_3d_pos = loss(outputs_3d, targets_3d)
         loss_3d_pos.backward()
-        # if max_norm:
-        #     nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
+        if max_norm:
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
         optimizer.step()
 
         epoch_loss_3d_pos.update(loss_3d_pos.item(), num_poses)

@@ -10,6 +10,7 @@ _C.eval_checkpoint = 'checkpoints/ckpt_linear.pth.tar'  # checkpoint to evaluate
 _C.train_checkpoint = '' # checkpoint to continue training from
 _C.device = 'cuda'
 _C.save_every = 10
+_C.max_norm = True  # whether to use the max norm constraint on the weights of each layer
 
 
 # Model arguments

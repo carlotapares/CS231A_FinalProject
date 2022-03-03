@@ -29,7 +29,7 @@ def evaluate(data_loader, model, device):
     model.eval()
     end = time.time()
 
-    for i, (targets_3d, inputs_2d, _) in enumerate(tqdm(data_loader)):
+    for i, (targets_3d, inputs_2d, _) in enumerate(data_loader):
         # Measure data loading time
         data_time.update(time.time() - end)
         num_poses = targets_3d.size(0)
@@ -44,9 +44,10 @@ def evaluate(data_loader, model, device):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        print('({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | MPJPE: {e1: .4f}' \
-            .format(batch=i + 1, size=len(data_loader), data=data_time.avg, bt=batch_time.avg,
-                    e1=epoch_error_3d_pos.avg))
+        if i % 1000 == 0 or i == len(data_loader) - 1:
+            print('({batch}/{size}) Data: {data:.6f}s | Batch: {bt:.3f}s | MPJPE: {e1: .4f}' \
+                .format(batch=i + 1, size=len(data_loader), data=data_time.avg, bt=batch_time.avg,
+                        e1=epoch_error_3d_pos.avg))
 
     return epoch_error_3d_pos.avg
 
