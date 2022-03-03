@@ -1,0 +1,3 @@
+__pycache__
+.DS_Store
+3d_pose_detector/data/*.npz
