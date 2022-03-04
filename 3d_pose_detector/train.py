@@ -52,7 +52,7 @@ def main():
     print("==> Creating model...")
     num_joints = dataset.skeleton().num_joints()
 
-    model = MartinezModel(num_joints * 2, (num_joints - 1) * 3).to(device) # 1 fewer output than input, since we treat the hip as (0, 0, 0) and predict root-relative coords
+    model = MartinezModel(num_joints * 2, (num_joints - 1) * 3, linear_size=config.linear_size).to(device) # 1 fewer output than input, since we treat the hip as (0, 0, 0) and predict root-relative coords
     model.apply(init_weights)
     # print("==> Total parameters: {:.2f}M".format(sum(p.numel() for p in model.parameters()) / 1000000.0))
 
