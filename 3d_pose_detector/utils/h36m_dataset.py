@@ -35,7 +35,7 @@ H36M_NAMES[27] = 'RWrist'
 
 # Human3.6m IDs for training and testing
 TRAIN_SUBJECTS = ['S1', 'S5', 'S6', 'S7', 'S8']
-TEST_SUBJECTS = ['S9', 'S11']
+TEST_SUBJECTS = ['S11'] # ADD BACK S9
 
 h36m_cameras_intrinsic_params = [
     {

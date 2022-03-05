@@ -1,7 +1,9 @@
 # from __future__ import print_function, absolute_import, division
 
+import datetime
 import time
 import argparse
+import json
 import numpy as np
 import os
 from tqdm import tqdm
@@ -10,6 +12,8 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
+from utils.visualize import plot_3d_image_prediction, show3Dpose
+from utils.camera import normalize_screen_coordinates
 from utils.utils import AverageMeter
 from utils.data_utils import fetch, read_3d_data, create_2d_data
 from utils.generators import PoseGenerator
@@ -38,6 +42,9 @@ def evaluate(data_loader, model, device):
         outputs_3d = model(inputs_2d.view(num_poses, -1)).view(num_poses, -1, 3).cpu()
         outputs_3d = torch.cat([torch.zeros(num_poses, 1, outputs_3d.size(2)), outputs_3d], 1)  # Pad hip joint (0,0,0)
 
+        show3Dpose(outputs_3d[0, :, :])
+        exit(0)
+
         epoch_error_3d_pos.update(mpjpe(outputs_3d, targets_3d).item() * 1000.0, num_poses)
 
         # Measure elapsed time
@@ -50,6 +57,20 @@ def evaluate(data_loader, model, device):
                         e1=epoch_error_3d_pos.avg))
 
     return epoch_error_3d_pos.avg
+
+def predict_on_custom_dataset(keypoints, model, device):
+    # Switch to evaluate mode
+    torch.set_grad_enabled(False)
+    model.eval()
+    keypoints = torch.Tensor(keypoints)
+    
+    num_images = keypoints.shape[0]
+    keypoints = keypoints.to(device)
+    outputs_3d = model(keypoints.view(num_images, -1)).view(num_images, -1, 3).cpu()
+    outputs_3d = torch.cat([torch.zeros(num_images, 1, outputs_3d.size(2)), outputs_3d], 1) # pad hip joint (0,0,0)
+
+    show3Dpose(outputs_3d[0, :, :])
+    return outputs_3d
 
 
 def main():
@@ -68,8 +89,11 @@ def main():
         
         action_filter = None if config.actions == '*' else config.actions.split(',')
         if action_filter is not None:
-            action_filter = map(lambda x: dataset.define_actions(x)[0], action_filter)
+            action_filter = list(map(lambda x: dataset.define_actions(x)[0], action_filter))
             print('==> Selected actions: {}'.format(action_filter))
+    elif config.dataset == "infiniteform":
+        keypoints = np.load(config.eval_file_keypoints, allow_pickle=True) # 2D keypoints
+        keypoints = normalize_screen_coordinates(keypoints, w=640, h=480)
     else:
         raise KeyError('Invalid dataset')
 
@@ -79,7 +103,7 @@ def main():
 
     # Create model
     print("==> Creating model...")
-    num_joints = dataset.skeleton().num_joints()
+    num_joints = 16
 
     model = MartinezModel(num_joints * 2, (num_joints - 1) * 3, linear_size=config.linear_size).to(device) # 1 fewer output than input, since we treat the hip as (0, 0, 0) and predict root-relative coords
     model.apply(init_weights)
@@ -97,6 +121,15 @@ def main():
 
     # Run evaluation
     print('==> Starting evaluation...')
+
+    if config.dataset == 'infiniteform':
+        predictions = predict_on_custom_dataset(keypoints, model, device)
+        save_path = os.path.join(config.eval_save_dir, config.dataset, 
+                                 datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        os.makedirs(save_path)
+        json.dump(config, open(os.path.join(save_path, 'config.json'), 'w'))
+        np.save(os.path.join(save_path, "predictions.npy"), predictions)
+        exit(0)
 
     if action_filter is None:
         action_filter = dataset.define_actions()

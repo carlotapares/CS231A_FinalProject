@@ -6,7 +6,10 @@ _C  =  CN()
 # General arguments
 _C.dataset = 'h36m'
 _C.actions = '*' # which actions to test on. * means all
+# _C.eval_checkpoint = 'checkpoints/2022-03-03_20-49-48/ckpt_best.pth.tar'  # checkpoint to evaluate from
 _C.eval_checkpoint = 'checkpoints/ckpt_linear.pth.tar'  # checkpoint to evaluate from
+_C.eval_file_keypoints = 'data/data_2d_infiniteform.npy' # file containing 2D keypoints that we will run eval on to get 3D keypoints
+_C.eval_save_dir = 'predictions'
 _C.train_checkpoint = '' # checkpoint to continue training from
 _C.device = 'cuda'
 _C.save_every = 10
