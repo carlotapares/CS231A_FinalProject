@@ -72,7 +72,10 @@ def main():
             optimizer.load_state_dict(ckpt['optimizer'])
             print("==> Loaded checkpoint (Epoch: {} | Error: {})".format(start_epoch, error_best))
 
-            ckpt_dir_path = os.path.dirname(config.train_checkpoint)
+            time_for_name = config.train_checkpoint.split('/')[1]
+
+            ckpt_dir_path = os.path.join('checkpoints',time_for_name)
+            log_dir_path = os.path.join('logs', time_for_name)
         else:
             raise RuntimeError("==> No checkpoint found at '{}'".format(config.train_checkpoint))
     else:

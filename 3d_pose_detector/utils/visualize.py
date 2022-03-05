@@ -4,22 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def show3Dpose(channels, lcolor="#3498db", rcolor="#e74c3c", add_labels=False): # blue, orange
-    """
-    Visualize a 3d skeleton
-    Args
-    channels: 96x1 vector. The pose to plot.
-    ax: matplotlib 3d axis to draw on
-    lcolor: color for left part of the body
-    rcolor: color for right part of the body
-    add_labels: whether to add coordinate labels
-    Returns
-    Nothing. Draws on ax.
-    """
+def show3Dpose(vals, name, show=False, lcolor="#3498db", rcolor="#e74c3c", add_labels=False): # blue, orange
     ax = plt.subplot(111, projection='3d')
 
     pos = [0,1,2,3,6,7,8,12,13,15,17,18,19,25,26,27]
-    vals = channels
 
     I   = np.array([1,2,3,1,7,8,1, 13,14,14,18,19,14,26,27])-1 # start points
     J   = np.array([2,3,4,7,8,9,13,14,18,16,19,20,26,27,28])-1 # end points
@@ -63,4 +51,9 @@ def show3Dpose(channels, lcolor="#3498db", rcolor="#e74c3c", add_labels=False): 
     ax.w_yaxis.line.set_color(white)
     ax.w_zaxis.line.set_color(white)
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.savefig('output/' + name + '.png')
+    plt.close()
+    #plt.show()
