@@ -8,6 +8,21 @@ import json
 from PIL import Image
 from io import BytesIO
 from base64 import b64decode, b64encode
+from ..2d_pose_detector.model import hg8
+from ..2d_pose_detector.predictor import HumanPosePredictor
+from torchvision import transforms
+
+PREDICTOR_2D = HumanPosePredictor(hg8(pretrained=True), device='cuda')
+
+def get2Dprediction(img):
+    if img.shape[2] > 3:
+        img = Image.new("RGB", img.size, (255, 255, 255))
+        img.paste(img, mask = img.split()[3])
+    convert_tensor = transforms.ToTensor()
+    img_tensor = convert_tensor(img)
+    keypoints = PREDICTOR_2D.estimate_joints(img_tensor, flip=True)
+    return keypoints
+
 
 class S(BaseHTTPRequestHandler):
 
