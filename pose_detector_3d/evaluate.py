@@ -69,6 +69,7 @@ def predict_on_custom_dataset(keypoints, model, device):
 
     return outputs_3d.numpy()
 
+
 def evaluate_on_custom_dataset(predictions, filenames):
     annot = json.load(open("data/clean_annotations_0503.json", "r"))
     for i in range(len(predictions)):

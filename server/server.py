@@ -3,16 +3,29 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
 import os
+import numpy as np
 import pathlib
 import json
 from PIL import Image
 from io import BytesIO
+from sys import argv
+from scipy.spatial.transform import Rotation
 from base64 import b64decode, b64encode
-from ..2d_pose_detector.model import hg8
-from ..2d_pose_detector.predictor import HumanPosePredictor
+import sys
+import torch
+sys.path.append("../")
+from pose_detector_2d.model import hg8
+from pose_detector_2d.predictor import HumanPosePredictor
+from pose_detector_3d.models.martinez_model import MartinezModel
+from pose_detector_3d.data.prepare_data_2d_h36m_sh import SH_TO_GT_PERM
+from pose_detector_3d.evaluate import predict_on_custom_dataset
+from pose_detector_3d.utils.camera import normalize_screen_coordinates
 from torchvision import transforms
 
-PREDICTOR_2D = HumanPosePredictor(hg8(pretrained=True), device='cuda')
+DEVICE = torch.device('cpu')
+PREDICTOR_2D = HumanPosePredictor(hg8(pretrained=True))
+PREDICTOR_3D = MartinezModel(16 * 2, (16 - 1) * 3, linear_size=1024).to(DEVICE)
+# DEVICE = torch.device('cuda')
 
 def get2Dprediction(img):
     if img.shape[2] > 3:
@@ -21,8 +34,15 @@ def get2Dprediction(img):
     convert_tensor = transforms.ToTensor()
     img_tensor = convert_tensor(img)
     keypoints = PREDICTOR_2D.estimate_joints(img_tensor, flip=True)
-    return keypoints
+    return keypoints, img.shape
 
+def get3Dprediction(keypoints_2d, img_shape):
+    keypoints_2d = keypoints_2d[:, SH_TO_GT_PERM, :]
+    keypoints_2d = normalize_screen_coordinates(keypoints_2d, w=img_shape[1], h=img_shape[0])
+    predictions_3d = predict_on_custom_dataset(keypoints_2d, PREDICTOR_3D, DEVICE)
+
+    r = Rotation.from_euler('zx', [90,90], degrees=True)
+    predictions_3d = r.apply(predictions_3d)
 
 class S(BaseHTTPRequestHandler):
 
@@ -69,7 +89,10 @@ def run(server_class=HTTPServer, handler_class=S, port=8080):
     logging.info('Stopping httpd...\n')
 
 if __name__ == '__main__':
-    from sys import argv
+    eval_checkpoint = '../pose_detector_3d/checkpoints/2022-03-03_20-49-48/ckpt_best.pth.tar'
+
+    ckpt = torch.load(eval_checkpoint, map_location=DEVICE)
+    PREDICTOR_3D.load_state_dict(ckpt['state_dict'])
 
     if len(argv) == 2:
         run(port=int(argv[1]))

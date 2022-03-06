@@ -48,7 +48,10 @@ def show_3D_pose(vals, show=False, azim=-90, elev=-140, name='test', lcolor="#34
     if show:
         plt.show()
     else:
-        plt.savefig('output/' + name + '.png')
+        fig.canvas.draw()
+        data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        # plt.savefig('output/' + name + '.png')
     plt.close()
 
 def show_3d_prediction(pred, gt, show=False, azim=-90, elev=-140, pcolor="#3498db", gtcolor="#e74c3c", name='test'): # blue, orange
