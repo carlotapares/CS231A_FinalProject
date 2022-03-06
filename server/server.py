@@ -32,7 +32,8 @@ class S(BaseHTTPRequestHandler):
         logging.info("POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n",
                 str(self.path), str(self.headers), 'image')
         im = Image.open(BytesIO(b64decode(post_data['image'].split(',')[1])))
-        im.save(os.path.join(pathlib.Path(__file__).parent.resolve(),"output", "imageToSave.png"))
+        im.save(os.path.join(pathlib.Path(__file__).parent.resolve(),"output", "image_to_process.png"))
+
         self._set_response()
         
         image_file = os.path.join(pathlib.Path(__file__).parent.resolve(),"output", "result.png")

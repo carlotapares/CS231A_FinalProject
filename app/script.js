@@ -16,9 +16,6 @@ $(function () {
     });
 });
 
-/*  ==========================================
-    SHOW UPLOADED IMAGE NAME
-* ========================================== */
 var input = document.getElementById( 'upload' );
 var infoArea = document.getElementById( 'upload-label' );
 
@@ -38,6 +35,7 @@ function sendBase64ToServer(name, base64){
         };
     // Set the content type of the request to json since that's what's being sent
     httpPost.responseType = 'json';
+    httpPost.timeout = 60000; // time in milliseconds
     httpPost.open("POST", path, true);
     httpPost.setRequestHeader('Content-Type', 'application/json');
     httpPost.send(data);
