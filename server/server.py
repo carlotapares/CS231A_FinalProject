@@ -7,15 +7,16 @@ import pathlib
 import json
 from PIL import Image
 from io import BytesIO
-from base64 import b64decode
+from base64 import b64decode, b64encode
 
 class S(BaseHTTPRequestHandler):
 
     def _set_response(self):
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
+        self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
+        
 
     def do_OPTIONS(self):
         self.send_response(200, "ok")
@@ -32,9 +33,12 @@ class S(BaseHTTPRequestHandler):
                 str(self.path), str(self.headers), 'image')
         im = Image.open(BytesIO(b64decode(post_data['image'].split(',')[1])))
         im.save(os.path.join(pathlib.Path(__file__).parent.resolve(),"output", "imageToSave.png"))
-        print('here')
         self._set_response()
-        self.wfile.write("POST request for {}".format(self.path).encode('utf-8'))
+        
+        image_file = os.path.join(pathlib.Path(__file__).parent.resolve(),"output", "result.png")
+        with open(image_file, "rb") as f:
+            im_bytes = f.read() 
+        self.wfile.write(json.dumps({'image': b64encode(im_bytes).decode("utf8")}).encode())
 
 def run(server_class=HTTPServer, handler_class=S, port=8080):
     logging.basicConfig(level=logging.INFO)

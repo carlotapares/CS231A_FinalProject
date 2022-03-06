@@ -28,13 +28,16 @@ function sendBase64ToServer(name, base64){
         data = JSON.stringify({image: base64});
     httpPost.onreadystatechange = function(err) {
             if (httpPost.readyState == 4 && httpPost.status == 200){
-                console.log(httpPost.responseText);
+                data = httpPost.response['image']
+                var image = document.getElementById('image3D')
+                image.src = 'data:image/png;base64,' + data
+                console.log(image.src)
             } else {
                 console.log(err);
             }
         };
     // Set the content type of the request to json since that's what's being sent
-    
+    httpPost.responseType = 'json';
     httpPost.open("POST", path, true);
     httpPost.setRequestHeader('Content-Type', 'application/json');
     httpPost.send(data);
