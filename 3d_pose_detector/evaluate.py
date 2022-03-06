@@ -6,13 +6,14 @@ import argparse
 import json
 import numpy as np
 import os
+from scipy.spatial.transform import Rotation
 
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
-from utils.visualize import show3Dpose
-from utils.camera import normalize_screen_coordinates
+from utils.visualize import show_3D_pose, show_3d_prediction
+from utils.camera import normalize_screen_coordinates, world_to_camera
 from utils.utils import AverageMeter
 from utils.data_utils import fetch, read_3d_data, create_2d_data
 from utils.generators import PoseGenerator
@@ -66,8 +67,22 @@ def predict_on_custom_dataset(keypoints, model, device):
     outputs_3d = model(keypoints.reshape(num_images, -1)).reshape(num_images, -1, 3).cpu()
     outputs_3d = torch.cat([torch.zeros(num_images, 1, outputs_3d.size(2)), outputs_3d], 1) # pad hip joint (0,0,0)
 
-    return outputs_3d
+    return outputs_3d.numpy()
 
+def evaluate_on_custom_dataset(predictions, filenames):
+    annot = json.load(open("data/clean_annotations_0503.json", "r"))
+    for i in range(len(predictions)):
+        camera_t, pitch = annot[filenames[i]]['camera_t'], annot[filenames[i]]['camera_pitch']
+        camera_r = Rotation.from_euler('y', pitch, degrees=True).as_quat()
+
+        keypoints_3d_gt = np.array(annot[filenames[i]]['keypoints_3d'])
+        keypoints_3d_gt = keypoints_3d_gt[SH_TO_GT_PERM, :]
+        keypoints_3d_gt = world_to_camera(keypoints_3d_gt, camera_r, camera_t)
+        keypoints_3d_gt[:, :] -= keypoints_3d_gt[:1, :] # remove global offset
+
+        r = Rotation.from_euler('zx', [90,90], degrees=True)
+        pred = r.apply(predictions[i])
+        show_3d_prediction(pred, keypoints_3d_gt, azim=0, elev=-90, show=False, name=filenames[i])
 
 def main():
     parser = argparse.ArgumentParser()
@@ -79,7 +94,7 @@ def main():
     if config.dataset == "h36m":
         dataset = Human36mDataset('data/data_3d_h36m.npz')
         dataset = read_3d_data(dataset)
-        keypoints = create_2d_data(os.path.join('data', 'data_2d_h36m_sh_pt_mpii.npz'), dataset)
+        keypoints = create_2d_data(os.path.join('data', 'data_2d_h36m_gt.npz'), dataset)
         
         action_filter = None if config.actions == '*' else config.actions.split(',')
         if action_filter is not None:
@@ -87,7 +102,9 @@ def main():
             print('==> Selected actions: {}'.format(action_filter))
     
     elif config.dataset == "infiniteform":
-        keypoints = np.load(config.eval_file_keypoints, allow_pickle=True) # 2D keypoints
+        data = np.load(config.eval_file_keypoints, allow_pickle=True).tolist()
+        filenames = list(data.keys())
+        keypoints = np.array(list(data.values())) # 2D keypoints
         keypoints = keypoints[:, SH_TO_GT_PERM, :]
         keypoints = normalize_screen_coordinates(keypoints, w=640, h=480)
     
@@ -120,11 +137,16 @@ def main():
 
     if config.dataset == 'infiniteform':
         predictions = predict_on_custom_dataset(keypoints, model, device)
+        evaluate_on_custom_dataset(predictions, filenames)
         save_path = os.path.join(config.eval_save_dir, config.dataset, 
                                  datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         os.makedirs(save_path)
         json.dump(config, open(os.path.join(save_path, 'config.json'), 'w'))
-        np.save(os.path.join(save_path, "predictions.npy"), predictions)
+
+        aux = {}
+        for j,p in enumerate(predictions):
+            aux[filenames[j]] = p
+        np.save(os.path.join(save_path, "predictions.npy"), aux)
         exit(0)
 
     if action_filter is None:

@@ -2,6 +2,7 @@ __pycache__
 .DS_Store
 3d_pose_detector/data/*.npz
 3d_pose_detector/data/*.npy
+3d_pose_detector/data/*.json
 checkpoints
 logs
 predictions
