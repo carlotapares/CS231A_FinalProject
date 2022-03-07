@@ -1,7 +1,10 @@
 h5py==2.9.0
+importlib-resources
 matplotlib
 numpy
+opencv-python
 scipy
+tabulate
 tensorboard
 torch
 torchvision

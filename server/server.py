@@ -15,6 +15,8 @@ from base64 import b64decode, b64encode
 import sys
 import torch
 
+sys.path.append(os.path.join(os.path.dirname(__file__),'../'))
+
 from pose_detector_2d.model import hg8
 from pose_detector_2d.predictor import HumanPosePredictor
 from pose_detector_3d.models.martinez_model import MartinezModel
@@ -24,7 +26,7 @@ from pose_detector_3d.utils.camera import normalize_screen_coordinates
 from pose_detector_3d.utils.visualize import show_3D_pose
 from torchvision import transforms
 
-DEVICE = torch.device('cpu')
+DEVICE = torch.device('cuda')
 PREDICTOR_2D = HumanPosePredictor(hg8(pretrained=True))
 PREDICTOR_3D = MartinezModel(16 * 2, (16 - 1) * 3, linear_size=1024).to(DEVICE)
 # DEVICE = torch.device('cuda')
@@ -75,6 +77,8 @@ class S(BaseHTTPRequestHandler):
         logging.info("POST request,\nPath: %s\nHeaders:\n%s\n\nBody:\n%s\n",
                 str(self.path), str(self.headers), 'image')
         im = Image.open(BytesIO(b64decode(post_data['image'].split(',')[1])))
+        pose = post_data['pose']
+        print(pose)
         # im.save(os.path.join(pathlib.Path(__file__).parent.resolve(),"output", "image_to_process.png"))
         keypoints_2d, im_shape = get2Dprediction(im)
         img = get3Dprediction(keypoints_2d, im_shape)

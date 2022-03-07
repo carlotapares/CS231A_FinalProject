@@ -40,15 +40,20 @@
          <!-- Uploaded image area-->
          <div class="image-area mt-4"><img id="imageResult" src="#" alt="" class="img-fluid rounded shadow-sm mx-auto d-block"></div>
          <div class="image-area2 mt-4"><img id="image3D" src="#" alt="" class="img-fluid rounded shadow-sm mx-auto d-block"></div>
-         <div class="mt-4">
-         <p class="lead">
-          <a href="#" class="btn btn-lg btn-secondary" onclick="submitImage()">Submit</a>
-        </p>
-        </div>
+         <div class="mt-4 dropdown">
+           <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select Pose to Submit</button>
+           <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+             <a class="dropdown-item" href="#">Plank</a>
+             <a class="dropdown-item" href="#">Squat</a>
+            </div>
+          </div>
+          <!--<div class="col-sm mt-4">
+            <a href="#" class="btn btn-lg btn-secondary" onclick="submitImage()">Submit</a>
+          </div>-->
       </main>
 
       <footer class="mastfoot mt-auto">
-        <div class="inner">
+        <div class="inner mt-4">
           <p>Project for <a href="http://web.stanford.edu/class/cs231a/index.html">CS231A</a>, by Carlota Pares-Morlans & Ben Alexander.</p>
         </div>
       </footer>

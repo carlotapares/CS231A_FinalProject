@@ -22,7 +22,7 @@ var infoArea = document.getElementById( 'upload-label' );
 function sendBase64ToServer(name, base64){
     var httpPost = new XMLHttpRequest(),
         path = "http://127.0.0.1:8080/",
-        data = JSON.stringify({image: base64});
+        data = JSON.stringify({image: base64, pose: name});
     httpPost.onreadystatechange = function(err) {
             if (httpPost.readyState == 4 && httpPost.status == 200){
                 data = httpPost.response['image']
@@ -41,7 +41,7 @@ function sendBase64ToServer(name, base64){
     httpPost.send(data);
 };
 
-function submitImage(){
+function submitImage(selText){
     var img = document.getElementById('imageResult')
     var c = document.createElement('canvas');
     c.height = img.naturalHeight;
@@ -50,6 +50,10 @@ function submitImage(){
 
     ctx.drawImage(img, 0, 0, c.width, c.height);
     var base64String = c.toDataURL();
-    sendBase64ToServer('test', base64String);
+    sendBase64ToServer(selText, base64String);
 };
 
+$(".dropdown-menu a").click(function(){
+    var selText = $(this).text();
+    submitImage(selText)
+  });
