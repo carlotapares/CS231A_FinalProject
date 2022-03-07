@@ -21,7 +21,7 @@ def get_img_from_fig(fig, dpi=180):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 
-def show_3D_pose(vals, show=False, azim=-90, elev=-140, name='test', lcolor="#3498db", rcolor="#e74c3c"): # blue, orange
+def show_3D_pose(vals, angles, show=False, azim=-90, elev=-140, name='test', lcolor="#3498db", rcolor="#e74c3c"): # blue, orange
     # ax = plt.subplot(111, projection='3d')
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -58,6 +58,13 @@ def show_3D_pose(vals, show=False, azim=-90, elev=-140, name='test', lcolor="#34
     ax.w_xaxis.line.set_color(white)
     ax.w_yaxis.line.set_color(white)
     ax.w_zaxis.line.set_color(white)
+
+    # Add text displaying the angle for the selected exercise
+    ax.text2D(0.5, 0.04, angles[1] + str(round(angles[0], 2)) + "°",
+            horizontalalignment='center',
+            verticalalignment='bottom',
+            bbox={'facecolor': 'black', 'alpha': 0.1, 'pad': 10},
+            transform=ax.transAxes)
 
     if show:
         plt.show()
