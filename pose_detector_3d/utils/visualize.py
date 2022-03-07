@@ -2,6 +2,8 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+import cv2
+import io
 
 pos = [0,1,2,3,6,7,8,12,13,15,17,18,19,25,26,27]
 
@@ -9,8 +11,20 @@ I   = np.array([1,2,3,1,7,8,1, 13,14,14,18,19,14,26,27])-1 # start points
 J   = np.array([2,3,4,7,8,9,13,14,18,16,19,20,26,27,28])-1 # end points
 LR  = np.array([1,1,1,0,0,0,0, 0,0, 0, 0, 0, 1, 1, 1], dtype=bool)
 
+def get_img_from_fig(fig, dpi=180):
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=dpi)
+    buf.seek(0)
+    img_arr = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+    buf.close()
+    img = cv2.imdecode(img_arr, 1)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img
+
 def show_3D_pose(vals, show=False, azim=-90, elev=-140, name='test', lcolor="#3498db", rcolor="#e74c3c"): # blue, orange
-    ax = plt.subplot(111, projection='3d')
+    # ax = plt.subplot(111, projection='3d')
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
     for i in np.arange( len(I) ):
         x, y, z = [np.array( [vals[pos.index(I[i]), j], vals[pos.index(J[i]), j]] ) for j in range(3)]
@@ -48,9 +62,7 @@ def show_3D_pose(vals, show=False, azim=-90, elev=-140, name='test', lcolor="#34
     if show:
         plt.show()
     else:
-        fig.canvas.draw()
-        data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        return get_img_from_fig(fig)
         # plt.savefig('output/' + name + '.png')
     plt.close()
 

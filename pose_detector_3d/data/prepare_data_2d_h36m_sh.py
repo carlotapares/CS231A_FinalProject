@@ -11,7 +11,8 @@ from shutil import rmtree
 
 import sys
 
-sys.path.append('../')
+sys.path.append(os.path.join(os.path.dirname(__file__),'../'))
+# sys.path.append('../')
 
 from utils.h36m_dataset import H36M_NAMES
 
