@@ -41,12 +41,14 @@ def get2Dprediction(img):
     else:
         img_tensor = convert_tensor(img)
     keypoints = PREDICTOR_2D.estimate_joints(img_tensor, flip=True)
-    return keypoints.numpy(), np.array(img).shape
+    return keypoints.numpy()
 
-def get3Dprediction(keypoints_2d, img_shape, exercise_type):
+def get3Dprediction(keypoints_2d, img, exercise_type):
+    img = np.array(img)
+    keypoints_2d_orig = keypoints_2d
     keypoints_2d = keypoints_2d[None, :]
     keypoints_2d = keypoints_2d[:, SH_TO_GT_PERM, :]
-    keypoints_2d = normalize_screen_coordinates(keypoints_2d, w=img_shape[1], h=img_shape[0])
+    keypoints_2d = normalize_screen_coordinates(keypoints_2d, w=img.shape[1], h=img.shape[0])
     predictions_3d = predict_on_custom_dataset(keypoints_2d, PREDICTOR_3D, DEVICE)
     predictions_3d = predictions_3d.squeeze()
 
@@ -57,8 +59,7 @@ def get3Dprediction(keypoints_2d, img_shape, exercise_type):
     elif exercise_type == "Squat":
         angles = [np.mean(get_squat_angle(predictions_3d)), "Squat angle (between hip, knees, and ankles): "]
 
-    img = show_3D_pose(predictions_3d, angles, show=False, azim=0, elev=-90)
-
+    img = show_3D_pose(predictions_3d, angles, keypoints_2d_orig, img, show=False, azim=0, elev=-90)
     return img
 
 class S(BaseHTTPRequestHandler):
@@ -87,8 +88,8 @@ class S(BaseHTTPRequestHandler):
         pose = post_data['pose']
 
         # im.save(os.path.join(pathlib.Path(__file__).parent.resolve(),"output", "image_to_process.png"))
-        keypoints_2d, im_shape = get2Dprediction(im)
-        img = get3Dprediction(keypoints_2d, im_shape, pose)
+        keypoints_2d = get2Dprediction(im)
+        img = get3Dprediction(keypoints_2d, im, pose)
 
         self._set_response()
         

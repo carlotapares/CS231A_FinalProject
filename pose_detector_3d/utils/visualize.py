@@ -11,6 +11,9 @@ I   = np.array([1,2,3,1,7,8,1, 13,14,14,18,19,14,26,27])-1 # start points
 J   = np.array([2,3,4,7,8,9,13,14,18,16,19,20,26,27,28])-1 # end points
 LR  = np.array([1,1,1,0,0,0,0, 0,0, 0, 0, 0, 1, 1, 1], dtype=bool)
 
+skeleton_mpii = [[0, 1], [1, 2], [3, 4], [4, 5], [2, 6], [6, 3], [12, 11], [8, 12], \
+                 [11, 10], [13, 14], [14, 15], [8, 9], [8, 7], [6, 7], [8, 13]]
+
 def get_img_from_fig(fig, dpi=180):
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=dpi)
@@ -21,10 +24,25 @@ def get_img_from_fig(fig, dpi=180):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 
-def show_3D_pose(vals, angles, show=False, azim=-90, elev=-140, name='test', lcolor="#3498db", rcolor="#e74c3c"): # blue, orange
+def show_3D_pose(vals, angles, keypoints_2d, img, show=False, azim=-90, elev=-140, name='test', lcolor="#3498db", rcolor="#e74c3c"): # blue, orange
     # ax = plt.subplot(111, projection='3d')
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+
+    # 2D plot
+    ax0 = fig.add_subplot(121)
+    ax0.imshow(img)
+    ax0.axis('off')
+    ax0.scatter(keypoints_2d[:,0], keypoints_2d[:,1], color='cyan', marker='.')
+    ax0.set_title("2D Detection")
+    for l in skeleton_mpii:
+        p1, p2 = l
+        x = [keypoints_2d[p1,0], keypoints_2d[p2,0]]
+        y = [keypoints_2d[p1,1], keypoints_2d[p2,1]]
+        ax0.plot(x,y, color='cyan')
+
+    # 3D plot
+    ax = fig.add_subplot(122, projection='3d')
+    ax.set_title("3D Detection")
 
     for i in np.arange( len(I) ):
         x, y, z = [np.array( [vals[pos.index(I[i]), j], vals[pos.index(J[i]), j]] ) for j in range(3)]
@@ -60,7 +78,7 @@ def show_3D_pose(vals, angles, show=False, azim=-90, elev=-140, name='test', lco
     ax.w_zaxis.line.set_color(white)
 
     # Add text displaying the angle for the selected exercise
-    ax.text2D(0.5, 0.04, angles[1] + str(round(angles[0], 2)) + "°",
+    ax.text2D(-0.2, -0.2, angles[1] + str(round(angles[0], 2)) + "°",
             horizontalalignment='center',
             verticalalignment='bottom',
             bbox={'facecolor': 'black', 'alpha': 0.1, 'pad': 10},
