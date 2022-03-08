@@ -10,12 +10,17 @@ class PoseGenerator(Dataset):
     def __init__(self, poses_3d, poses_2d, actions):
         assert poses_3d is not None
 
-        self._poses_3d = np.concatenate(poses_3d)
-        self._poses_2d = np.concatenate(poses_2d)
-        self._actions = reduce(lambda x, y: x + y, actions)
+        if actions is not None:
+            self._poses_3d = np.concatenate(poses_3d)
+            self._poses_2d = np.concatenate(poses_2d)
+            self._actions = reduce(lambda x, y: x + y, actions)
+        else:
+            self._poses_2d = poses_2d
+            self._poses_3d = poses_3d
+            self._actions = np.empty(self._poses_3d.shape[0])
 
-        assert self._poses_3d.shape[0] == self._poses_2d.shape[0] and self._poses_3d.shape[0] == len(self._actions)
-        print('Generating {} poses...'.format(len(self._actions)))
+        assert self._poses_3d.shape[0] == self._poses_2d.shape[0]
+        print('Generating {} poses...'.format(self._poses_3d.shape[0]))
 
     def __getitem__(self, index):
         out_pose_3d = self._poses_3d[index]

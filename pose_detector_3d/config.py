@@ -11,6 +11,7 @@ _C.eval_checkpoint = 'checkpoints/2022-03-03_20-49-48/ckpt_best.pth.tar'  # chec
 _C.eval_file_keypoints = 'data/data_2d_infiniteform_0305.npy' # file containing 2D keypoints that we will run eval on to get 3D keypoints
 _C.eval_save_dir = 'predictions'
 _C.train_checkpoint = '' # checkpoint to continue training from
+_C.train_dataset = ''
 _C.device = 'cuda'
 _C.save_every = 10
 _C.max_norm = True  # whether to use the max norm constraint on the weights of each layer

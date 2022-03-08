@@ -3,6 +3,7 @@ __pycache__
 pose_detector_3d/data/*.npz
 pose_detector_3d/data/*.npy
 pose_detector_3d/data/*.json
+pose_detector_3d/data/infiniteform*
 checkpoints
 logs
 predictions

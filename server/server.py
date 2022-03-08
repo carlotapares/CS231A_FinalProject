@@ -27,7 +27,7 @@ from pose_detector_3d.utils.angles import get_plank_angle, get_squat_angle
 from pose_detector_3d.utils.visualize import show_3D_pose
 from torchvision import transforms
 
-DEVICE = torch.device('cpu')
+DEVICE = torch.device('cuda')
 PREDICTOR_2D = HumanPosePredictor(hg8(pretrained=True))
 PREDICTOR_3D = MartinezModel(16 * 2, (16 - 1) * 3, linear_size=1024).to(DEVICE)
 # DEVICE = torch.device('cuda')
@@ -102,11 +102,12 @@ class S(BaseHTTPRequestHandler):
         im_bytes = b.getvalue()
         self.wfile.write(json.dumps({'image': b64encode(im_bytes).decode("utf8")}).encode())
 
-def run(server_class=HTTPServer, handler_class=S, port=8080):
+def run(server_class=HTTPServer, handler_class=S, port=3002):
     logging.basicConfig(level=logging.INFO)
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     logging.info('Starting httpd...\n')
+    logging.info(server_address)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

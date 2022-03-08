@@ -6,6 +6,7 @@ import time
 import datetime
 import argparse
 import os
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -20,7 +21,9 @@ from utils.utils import AverageMeter, lr_decay, save_ckpt
 from utils.data_utils import fetch, read_3d_data, create_2d_data
 from utils.generators import PoseGenerator
 from utils.h36m_dataset import Human36mDataset, TRAIN_SUBJECTS, TEST_SUBJECTS
+from utils.camera import normalize_screen_coordinates
 from models.martinez_model import MartinezModel, init_weights
+from data.prepare_data_2d_h36m_sh import SH_TO_GT_PERM
 
 
 def main():
@@ -41,6 +44,21 @@ def main():
         if action_filter is not None:
             action_filter = map(lambda x: dataset.define_actions(x)[0], action_filter)
             print('==> Selected actions: {}'.format(action_filter))
+
+    elif config.dataset == "infiniteform":
+        data = np.load(config.train_dataset, allow_pickle=True).tolist()
+        keypoints_2d = []
+        keypoints_3d = []
+        for _,v in data.items():
+            keypoints_2d.append(np.array(v['keypoints']))
+            keypoints_3d.append(np.array(v['keypoints_3d']))
+
+        keypoints_2d = np.array(keypoints_2d)
+        keypoints_2d = keypoints_2d[:, SH_TO_GT_PERM, :]
+        keypoints_2d = normalize_screen_coordinates(keypoints_2d, w=640, h=480)
+
+        keypoints_3d = np.array(keypoints_3d)
+
     else:
         raise KeyError('Invalid dataset')
 
@@ -50,7 +68,7 @@ def main():
 
     # Create model
     print("==> Creating model...")
-    num_joints = dataset.skeleton().num_joints()
+    num_joints = 16
 
     model = MartinezModel(num_joints * 2, (num_joints - 1) * 3, linear_size=config.linear_size).to(device) # 1 fewer output than input, since we treat the hip as (0, 0, 0) and predict root-relative coords
     model.apply(init_weights)
@@ -72,10 +90,13 @@ def main():
             optimizer.load_state_dict(ckpt['optimizer'])
             print("==> Loaded checkpoint (Epoch: {} | Error: {})".format(start_epoch, error_best))
 
-            time_for_name = config.train_checkpoint.split('/')[1]
+            time_for_name = config.train_checkpoint.split('/')[-2]
 
-            ckpt_dir_path = os.path.join('checkpoints',time_for_name)
-            log_dir_path = os.path.join('logs', time_for_name)
+            ckpt_dir_path = '/'.join(config.train_checkpoint.split('/')[:-1])
+            if ckpt_dir_path.split('/')[0] == 'checkpoints':
+                log_dir_path = os.path.join('logs', time_for_name)
+            else:
+                log_dir_path = os.path.join('/'.join(config.train_checkpoint.split('/')[:-2]), 'logs', time_for_name)
         else:
             raise RuntimeError("==> No checkpoint found at '{}'".format(config.train_checkpoint))
     else:
@@ -104,13 +125,28 @@ def main():
     json.dump(config, open(os.path.join(ckpt_dir_path, 'config.json'), 'w'))
     logger = Logger(log_dir_path)
 
-    poses_train, poses_train_2d, actions_train = fetch(TRAIN_SUBJECTS, dataset, keypoints, action_filter)
-    train_loader = DataLoader(PoseGenerator(poses_train, poses_train_2d, actions_train), batch_size=config.batch_size,
-                              shuffle=True, num_workers=config.num_workers, pin_memory=True)
+    if config.dataset == 'infiniteform':
+        end_train = int(keypoints_2d.shape[0] * 0.70)
+        poses_train_2d, poses_valid_2d = keypoints_2d[:end_train], keypoints_2d[end_train:]
+        poses_train_3d, poses_valid_3d = keypoints_3d[:end_train], keypoints_3d[end_train:]
 
-    poses_valid, poses_valid_2d, actions_valid = fetch(TEST_SUBJECTS, dataset, keypoints, action_filter)
-    valid_loader = DataLoader(PoseGenerator(poses_valid, poses_valid_2d, actions_valid), batch_size=config.batch_size,
+        train_loader = DataLoader(PoseGenerator(poses_train_3d, poses_train_2d, None), batch_size=config.batch_size,
                               shuffle=False, num_workers=config.num_workers, pin_memory=True)
+
+        valid_loader = DataLoader(PoseGenerator(poses_valid_3d, poses_valid_2d, None), batch_size=config.batch_size,
+                              shuffle=False, num_workers=config.num_workers, pin_memory=True)
+    
+    elif config.dataset == 'h36m':
+        poses_train, poses_train_2d, actions_train = fetch(TRAIN_SUBJECTS, dataset, keypoints, action_filter)
+        train_loader = DataLoader(PoseGenerator(poses_train, poses_train_2d, actions_train), batch_size=config.batch_size,
+                                shuffle=True, num_workers=config.num_workers, pin_memory=True)
+
+        poses_valid, poses_valid_2d, actions_valid = fetch(TEST_SUBJECTS, dataset, keypoints, action_filter)
+        valid_loader = DataLoader(PoseGenerator(poses_valid, poses_valid_2d, actions_valid), batch_size=config.batch_size,
+                                shuffle=False, num_workers=config.num_workers, pin_memory=True)
+
+    else:
+        raise(KeyError('Invalid dataset'))
 
     for epoch in tqdm(range(start_epoch, config.epochs)):
         print('\nEpoch: %d | LR: %.8f' % (epoch + 1, lr_now))
@@ -146,6 +182,7 @@ def train(data_loader, model, loss, optimizer, device, logger, lr_init, lr_now, 
     end = time.time()
 
     for i, (targets_3d, inputs_2d, _) in enumerate(data_loader):
+
         # Measure data loading time
         data_time.update(time.time() - end)
         num_poses = targets_3d.size(0)

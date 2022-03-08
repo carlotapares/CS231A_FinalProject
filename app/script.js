@@ -21,7 +21,7 @@ var infoArea = document.getElementById( 'upload-label' );
 
 function sendBase64ToServer(name, base64){
     var httpPost = new XMLHttpRequest(),
-        path = "http://127.0.0.1:8080/",
+        path = "https://7964-83-41-213-245.ngrok.io",
         data = JSON.stringify({image: base64, pose: name});
     httpPost.onreadystatechange = function(err) {
             if (httpPost.readyState == 4 && httpPost.status == 200){

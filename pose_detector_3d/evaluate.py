@@ -43,6 +43,7 @@ def evaluate(data_loader, model, device):
         outputs_3d = model(inputs_2d.view(num_poses, -1)).view(num_poses, -1, 3).cpu()
         outputs_3d = torch.cat([torch.zeros(num_poses, 1, outputs_3d.size(2)), outputs_3d], 1)  # Pad hip joint (0,0,0)
 
+        show_3d_prediction(outputs_3d.numpy()[0,:,:], targets_3d[0,:,:], show=True)
         epoch_error_3d_pos.update(mpjpe(outputs_3d, targets_3d).item() * 1000.0, num_poses)
 
         # Measure elapsed time

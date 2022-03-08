@@ -118,9 +118,11 @@ def show_3d_prediction(pred, gt, show=False, azim=-90, elev=-140, pcolor="#3498d
     plt.legend()
 
     RADIUS = 1.3 # space around the subject
-    xroot, yroot, zroot = gt[0,0], gt[0,1], gt[0,2]
 
-    for ax in axx:
+    root = [pred[0,:],gt[0,:]]
+
+    for j, ax in enumerate(axx):
+        xroot, yroot, zroot = root[j]
         ax.view_init(elev=elev, azim=azim)
         ax.set_xlim3d([-RADIUS+xroot, RADIUS+xroot])
         ax.set_zlim3d([-RADIUS+zroot, RADIUS+zroot])
