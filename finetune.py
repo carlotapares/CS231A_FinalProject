@@ -82,7 +82,7 @@ def evaluate_inf_validation_accuracy(annot, preds, img_idx):
 
 def compute_keypoints_3D(annot, idx):
     camera_t, pitch, yaw = annot[idx]['camera_t'], annot[idx]['camera_pitch'], annot[idx]['camera_yaw']
-    camera_r = Rotation.from_euler('yz', [pitch, yaw], degrees=True).as_quat()
+    camera_r = Rotation.from_euler('x', [pitch], degrees=True).as_quat()
 
     keypoints_3d_gt = np.array(annot[idx]['keypoints_3d'])
     keypoints_3d_gt = keypoints_3d_gt[SH_TO_GT_PERM, :]
@@ -141,7 +141,6 @@ def compute_keypoints_2D(annot_path, images_path):
 if __name__ == '__main__':
     
     annot_path = 'pose_detector_3d/data/infiniteform2/annotations.json'
-
     annot_clean_path = preprocess_infiniteform_annotations(annot_path)
 
     images_path = 'pose_detector_3d/data/infiniteform2/'

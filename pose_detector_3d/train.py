@@ -47,6 +47,7 @@ def main():
 
     elif config.dataset == "infiniteform":
         data = np.load(config.train_dataset, allow_pickle=True).tolist()
+        filenames = list(data.keys())
         keypoints_2d = []
         keypoints_3d = []
         for _,v in data.items():
@@ -127,6 +128,8 @@ def main():
 
     if config.dataset == 'infiniteform':
         end_train = int(keypoints_2d.shape[0] * 0.70)
+        print('Train: ', filenames[:end_train])
+        print('Validation: ', filenames[end_train:])
         poses_train_2d, poses_valid_2d = keypoints_2d[:end_train], keypoints_2d[end_train:]
         poses_train_3d, poses_valid_3d = keypoints_3d[:end_train], keypoints_3d[end_train:]
 

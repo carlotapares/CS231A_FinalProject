@@ -43,8 +43,17 @@ def evaluate(data_loader, model, device):
         outputs_3d = model(inputs_2d.view(num_poses, -1)).view(num_poses, -1, 3).cpu()
         outputs_3d = torch.cat([torch.zeros(num_poses, 1, outputs_3d.size(2)), outputs_3d], 1)  # Pad hip joint (0,0,0)
 
-        show_3d_prediction(outputs_3d.numpy()[0,:,:], targets_3d[0,:,:], show=True)
-        epoch_error_3d_pos.update(mpjpe(outputs_3d, targets_3d).item() * 1000.0, num_poses)
+        if config.dataset == 'infiniteform':
+            r = Rotation.from_euler('xz', [-90,-90], degrees=True)
+            prediction = []
+            for p in outputs_3d:
+                prediction.append(r.apply(p))
+            prediction = torch.tensor(np.array(prediction))
+            show_3d_prediction(prediction.numpy()[2,:,:], targets_3d.numpy()[2,:,:], show=True)
+            epoch_error_3d_pos.update(mpjpe(prediction, targets_3d).item() * 1000.0, num_poses)
+
+        else:
+            epoch_error_3d_pos.update(mpjpe(outputs_3d, targets_3d).item() * 1000.0, num_poses)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -75,7 +84,7 @@ def evaluate_on_custom_dataset(predictions, filenames):
     annot = json.load(open("data/clean_annotations_0503.json", "r"))
     for i in range(len(predictions)):
         camera_t, pitch = annot[filenames[i]]['camera_t'], annot[filenames[i]]['camera_pitch']
-        camera_r = Rotation.from_euler('y', pitch, degrees=True).as_quat()
+        camera_r = Rotation.from_euler('x', pitch, degrees=True).as_quat()
 
         keypoints_3d_gt = np.array(annot[filenames[i]]['keypoints_3d'])
         keypoints_3d_gt = keypoints_3d_gt[SH_TO_GT_PERM, :]

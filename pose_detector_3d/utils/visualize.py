@@ -140,7 +140,7 @@ def show_3d_prediction(pred, gt, show=False, azim=-90, elev=-140, pcolor="#3498d
 
     for j, ax in enumerate(axx):
         xroot, yroot, zroot = root[j]
-        ax.view_init(elev=elev, azim=azim)
+        ax.view_init(elev=0, azim=-90)
         ax.set_xlim3d([-RADIUS+xroot, RADIUS+xroot])
         ax.set_zlim3d([-RADIUS+zroot, RADIUS+zroot])
         ax.set_ylim3d([-RADIUS+yroot, RADIUS+yroot])
