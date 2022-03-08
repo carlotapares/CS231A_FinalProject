@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import io
+from scipy.spatial.transform import Rotation
 
 pos = [0,1,2,3,6,7,8,12,13,15,17,18,19,25,26,27]
 
@@ -24,26 +25,7 @@ def get_img_from_fig(fig, dpi=180):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 
-def show_3D_pose(vals, angles, keypoints_2d, img, show=False, azim=-90, elev=-140, name='test', lcolor="#3498db", rcolor="#e74c3c"): # blue, orange
-    # ax = plt.subplot(111, projection='3d')
-    fig = plt.figure()
-
-    # 2D plot
-    ax0 = fig.add_subplot(121)
-    ax0.imshow(img)
-    ax0.axis('off')
-    ax0.scatter(keypoints_2d[:,0], keypoints_2d[:,1], color='cyan', marker='.')
-    ax0.set_title("2D Detection")
-    for l in skeleton_mpii:
-        p1, p2 = l
-        x = [keypoints_2d[p1,0], keypoints_2d[p2,0]]
-        y = [keypoints_2d[p1,1], keypoints_2d[p2,1]]
-        ax0.plot(x,y, color='cyan')
-
-    # 3D plot
-    ax = fig.add_subplot(122, projection='3d')
-    ax.set_title("3D Detection")
-
+def plot_3d_keypoints(vals, ax, lcolor, rcolor, elev, azim):
     for i in np.arange( len(I) ):
         x, y, z = [np.array( [vals[pos.index(I[i]), j], vals[pos.index(J[i]), j]] ) for j in range(3)]
         # x, y, z = [np.array( [vals[I[i], j], vals[J[i], j]] ) for j in range(3)]
@@ -77,8 +59,43 @@ def show_3D_pose(vals, angles, keypoints_2d, img, show=False, azim=-90, elev=-14
     ax.w_yaxis.line.set_color(white)
     ax.w_zaxis.line.set_color(white)
 
+def show_3D_pose(vals, angles, keypoints_2d, img, show=False, azim=-90, elev=-140, name='test', lcolor="#3498db", rcolor="#e74c3c"): # blue, orange
+    # ax = plt.subplot(111, projection='3d')
+    fig = plt.figure()
+
+    # 2D plot
+    ax0 = fig.add_subplot(221)
+    ax0.imshow(img)
+    ax0.axis('off')
+    ax0.scatter(keypoints_2d[:,0], keypoints_2d[:,1], color='cyan', marker='.')
+    ax0.set_title("2D Detection")
+    for l in skeleton_mpii:
+        p1, p2 = l
+        x = [keypoints_2d[p1,0], keypoints_2d[p2,0]]
+        y = [keypoints_2d[p1,1], keypoints_2d[p2,1]]
+        ax0.plot(x,y, color='cyan')
+
+    # 3D plot (viewpoint #1)
+    ax = fig.add_subplot(222, projection='3d')
+    ax.set_title("3D Detection (Viewpoint #1)")
+    plot_3d_keypoints(vals, ax, lcolor, rcolor, elev, azim)
+
+    # 3D plot (viewpoint #2)
+    ax2 = fig.add_subplot(223, projection='3d')
+    ax2.set_title("3D Detection (Viewpoint #2)")
+    r = Rotation.from_euler('x', [90], degrees=True)
+    vals_view2 = r.apply(vals)
+    plot_3d_keypoints(vals_view2, ax2, lcolor, rcolor, elev, azim)
+
+    # 3D plot (viewpoint #3)
+    ax3 = fig.add_subplot(224, projection='3d')
+    ax3.set_title("3D Detection (Viewpoint #3)")
+    r = Rotation.from_euler('y', [90], degrees=True)
+    vals_view3 = r.apply(vals)
+    plot_3d_keypoints(vals_view3, ax3, lcolor, rcolor, elev, azim)
+
     # Add text displaying the angle for the selected exercise
-    ax.text2D(-0.2, -0.2, angles[1] + str(round(angles[0], 2)) + "°",
+    ax2.text2D(-0.2, -1.4, angles[1] + str(round(angles[0], 2)) + "°",
             horizontalalignment='center',
             verticalalignment='bottom',
             bbox={'facecolor': 'black', 'alpha': 0.1, 'pad': 10},
