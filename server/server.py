@@ -52,7 +52,8 @@ def get3Dprediction(keypoints_2d, img, exercise_type):
     predictions_3d = predict_on_custom_dataset(keypoints_2d, PREDICTOR_3D, DEVICE)
     predictions_3d = predictions_3d.squeeze()
 
-    r = Rotation.from_euler('zyx', [90,-20,90], degrees=True)
+    # r = Rotation.from_euler('zyx', [90,-20,90], degrees=True) # use this line for h36m model
+    r = Rotation.from_euler('zyx', [0,90,0], degrees=True)      # use this for infiniteform model
     predictions_3d = r.apply(predictions_3d)
     if exercise_type == "Plank":
         angles = [get_plank_angle(predictions_3d), "Plank angle (between thorax, hip, and knees): "]
