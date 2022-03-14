@@ -8,3 +8,4 @@ checkpoints
 logs
 predictions
 output
+pose_detector_3d/data/h36m.zip

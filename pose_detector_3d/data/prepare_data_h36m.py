@@ -27,7 +27,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Human3.6M dataset downloader/converter')
 
     # Default: convert dataset preprocessed by Martinez et al. in https://github.com/una-dinosauria/3d-pose-baseline
-    parser.add_argument('--from-archive', default='', type=str, metavar='PATH', help='convert preprocessed dataset')
+    parser.add_argument('--from-archive', default='h36m.zip', type=str, metavar='PATH', help='convert preprocessed dataset')
 
     # Alternatively, convert dataset from original source (the Human3.6M dataset path must be specified manually)
     parser.add_argument('--from-source', default='', type=str, metavar='PATH', help='convert original dataset')
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                     continue  # Discard corrupted video
 
                 with h5py.File(f) as hf:
-                    positions = hf['3D_positions'].value.reshape(32, 3, -1).transpose(2, 0, 1)
+                    positions = hf['3D_positions'][()].reshape(32, 3, -1).transpose(2, 0, 1)
                     positions /= 1000  # Meters instead of millimeters
                     output[subject][action] = positions.astype('float32')
 

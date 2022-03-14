@@ -97,7 +97,9 @@ def main():
             if ckpt_dir_path.split('/')[0] == 'checkpoints':
                 log_dir_path = os.path.join('logs', time_for_name)
             else:
-                log_dir_path = os.path.join('/'.join(config.train_checkpoint.split('/')[:-2]), 'logs', time_for_name)
+                log_dir_path = os.path.join('/'.join(config.train_checkpoint.split('/')[:-3]), 'logs', time_for_name)
+            print(ckpt_dir_path)
+            print(log_dir_path)
         else:
             raise RuntimeError("==> No checkpoint found at '{}'".format(config.train_checkpoint))
     else:
@@ -127,9 +129,9 @@ def main():
     logger = Logger(log_dir_path)
 
     if config.dataset == 'infiniteform':
-        end_train = int(keypoints_2d.shape[0] * 0.70)
-        print('Train: ', filenames[:end_train])
-        print('Validation: ', filenames[end_train:])
+        end_train = int(keypoints_2d.shape[0] * 0.85)
+        #print('Train: ', filenames[:end_train])
+        #print('Validation: ', filenames[end_train:])
         poses_train_2d, poses_valid_2d = keypoints_2d[:end_train], keypoints_2d[end_train:]
         poses_train_3d, poses_valid_3d = keypoints_3d[:end_train], keypoints_3d[end_train:]
 

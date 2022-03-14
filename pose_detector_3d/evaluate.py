@@ -4,15 +4,17 @@ import datetime
 import time
 import argparse
 import json
+from matplotlib.pyplot import show
 import numpy as np
 import os
 from scipy.spatial.transform import Rotation
+from hypertools.tools import procrustes
 
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 
-from utils.visualize import show_3D_pose, show_3d_prediction
+from utils.visualize import show_2D_data, show_3d_prediction
 from utils.camera import normalize_screen_coordinates, world_to_camera
 from utils.utils import AverageMeter
 from utils.data_utils import fetch, read_3d_data, create_2d_data
@@ -38,22 +40,18 @@ def evaluate(data_loader, model, device):
         # Measure data loading time
         data_time.update(time.time() - end)
         num_poses = targets_3d.size(0)
-
+        
         inputs_2d = inputs_2d.to(device)
+
         outputs_3d = model(inputs_2d.view(num_poses, -1)).view(num_poses, -1, 3).cpu()
         outputs_3d = torch.cat([torch.zeros(num_poses, 1, outputs_3d.size(2)), outputs_3d], 1)  # Pad hip joint (0,0,0)
 
-        if config.dataset == 'infiniteform':
-            r = Rotation.from_euler('xz', [-90,-90], degrees=True)
-            prediction = []
-            for p in outputs_3d:
-                prediction.append(r.apply(p))
-            prediction = torch.tensor(np.array(prediction))
-            show_3d_prediction(prediction.numpy()[2,:,:], targets_3d.numpy()[2,:,:], show=True)
-            epoch_error_3d_pos.update(mpjpe(prediction, targets_3d).item() * 1000.0, num_poses)
+        #al = procrustes(targets_3d.numpy()[0,:,:], outputs_3d.numpy()[0,:,:], scaling=False)
 
-        else:
-            epoch_error_3d_pos.update(mpjpe(outputs_3d, targets_3d).item() * 1000.0, num_poses)
+        epoch_error_3d_pos.update(mpjpe(outputs_3d, targets_3d).item() * 1000.0, num_poses)
+
+        #show_2D_data(inputs_2d.cpu().numpy()[0,:,:])
+        #show_3d_prediction(outputs_3d.numpy()[0,:,:], targets_3d.numpy()[0,:,:], show=True)
 
         # Measure elapsed time
         batch_time.update(time.time() - end)
@@ -79,22 +77,6 @@ def predict_on_custom_dataset(keypoints, model, device):
 
     return outputs_3d.numpy()
 
-
-def evaluate_on_custom_dataset(predictions, filenames):
-    annot = json.load(open("data/clean_annotations_0503.json", "r"))
-    for i in range(len(predictions)):
-        camera_t, pitch = annot[filenames[i]]['camera_t'], annot[filenames[i]]['camera_pitch']
-        camera_r = Rotation.from_euler('x', pitch, degrees=True).as_quat()
-
-        keypoints_3d_gt = np.array(annot[filenames[i]]['keypoints_3d'])
-        keypoints_3d_gt = keypoints_3d_gt[SH_TO_GT_PERM, :]
-        keypoints_3d_gt = world_to_camera(keypoints_3d_gt, camera_r, camera_t)
-        keypoints_3d_gt[:, :] -= keypoints_3d_gt[:1, :] # remove global offset
-
-        r = Rotation.from_euler('zx', [90,90], degrees=True)
-        pred = r.apply(predictions[i])
-        show_3d_prediction(pred, keypoints_3d_gt, azim=0, elev=-90, show=False, name=filenames[i])
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("opts", default=None, nargs=argparse.REMAINDER)
@@ -113,11 +95,21 @@ def main():
             print('==> Selected actions: {}'.format(action_filter))
     
     elif config.dataset == "infiniteform":
-        data = np.load(config.eval_file_keypoints, allow_pickle=True).tolist()
+        data = np.load(config.train_dataset, allow_pickle=True).tolist()
         filenames = list(data.keys())
-        keypoints = np.array(list(data.values())) # 2D keypoints
-        keypoints = keypoints[:, SH_TO_GT_PERM, :]
-        keypoints = normalize_screen_coordinates(keypoints, w=640, h=480)
+        #annot = json.load(open('data/infiniteform/annotations_clean.json', 'r'))
+        exercises = []
+        keypoints_2d = []
+        keypoints_3d = []
+        for k,v in data.items():
+            keypoints_2d.append(np.array(v['keypoints']))
+            keypoints_3d.append(np.array(v['keypoints_3d']))
+            #exercises.append(annot[k]['exercise'])
+
+        keypoints_2d = np.array(keypoints_2d)
+        keypoints_2d = keypoints_2d[:, SH_TO_GT_PERM, :]
+        keypoints_2d = normalize_screen_coordinates(keypoints_2d, w=640, h=480)
+        keypoints_3d = np.array(keypoints_3d)
     
     else:
         raise KeyError('Invalid dataset')
@@ -147,31 +139,39 @@ def main():
     print('==> Starting evaluation...')
 
     if config.dataset == 'infiniteform':
-        predictions = predict_on_custom_dataset(keypoints, model, device)
-        evaluate_on_custom_dataset(predictions, filenames)
-        save_path = os.path.join(config.eval_save_dir, config.dataset, 
-                                 datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-        os.makedirs(save_path)
-        json.dump(config, open(os.path.join(save_path, 'config.json'), 'w'))
+        errors_p1 = []
+        end_train = int(keypoints_2d.shape[0] * 0.85)
+        _, poses_valid_2d = keypoints_2d[:end_train], keypoints_2d[end_train:]
+        _, poses_valid_3d = keypoints_3d[:end_train], keypoints_3d[end_train:]
+        #_, exercises_valid = exercises[:end_train], exercises[end_train:]
 
-        aux = {}
-        for j,p in enumerate(predictions):
-            aux[filenames[j]] = p
-        np.save(os.path.join(save_path, "predictions.npy"), aux)
-        exit(0)
+        '''unique, counts = np.unique(np.array(exercises_valid), return_counts=True)
+        for ex in unique:
+            ind = np.where(np.array(exercises_valid) == ex)[0]
+            pos_ex_3d, pos_ex_2d = poses_valid_3d[ind], poses_valid_2d[ind]
+            valid_loader = DataLoader(PoseGenerator(pos_ex_3d, pos_ex_2d, None), batch_size=config.batch_size,
+                              shuffle=False, num_workers=config.num_workers, pin_memory=True)
+            errors_p1.append(evaluate(valid_loader, model, device))'''
 
-    if action_filter is None:
-        action_filter = dataset.define_actions()
+        valid_loader = DataLoader(PoseGenerator(poses_valid_3d, poses_valid_2d, None), batch_size=config.batch_size,
+                              shuffle=False, num_workers=config.num_workers, pin_memory=True)
 
-    errors_p1 = np.zeros(len(action_filter))
+        errors_p1.append(evaluate(valid_loader, model, device))
 
-    for i, action in enumerate(action_filter):
-        poses_valid, poses_valid_2d, actions_valid = fetch(TEST_SUBJECTS, dataset, keypoints, [action])
-        
-        valid_loader = DataLoader(PoseGenerator(poses_valid, poses_valid_2d, actions_valid),
-                                    batch_size=config.batch_size, shuffle=False,
-                                    num_workers=config.num_workers, pin_memory=True)
-        errors_p1[i] = evaluate(valid_loader, model, device)
+    elif config.dataset == 'h36m':
+
+        if action_filter is None:
+            action_filter = dataset.define_actions()
+
+        errors_p1 = np.zeros(len(action_filter))
+
+        for i, action in enumerate(action_filter):
+            poses_valid, poses_valid_2d, actions_valid = fetch(TEST_SUBJECTS, dataset, keypoints, [action])
+            
+            valid_loader = DataLoader(PoseGenerator(poses_valid, poses_valid_2d, actions_valid),
+                                        batch_size=config.batch_size, shuffle=False,
+                                        num_workers=config.num_workers, pin_memory=True)
+            errors_p1[i] = evaluate(valid_loader, model, device)
 
     print('Protocol #1   (MPJPE) action-wise average: {:.2f} (mm)'.format(np.mean(errors_p1).item()))
 

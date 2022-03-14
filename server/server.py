@@ -52,14 +52,15 @@ def get3Dprediction(keypoints_2d, img, exercise_type):
     predictions_3d = predict_on_custom_dataset(keypoints_2d, PREDICTOR_3D, DEVICE)
     predictions_3d = predictions_3d.squeeze()
 
-    r = Rotation.from_euler('zyx', [90,-20,90], degrees=True)
-    predictions_3d = r.apply(predictions_3d)
+    #r = Rotation.from_euler('zyx', [90,-20,90], degrees=True)
+    #predictions_3d = r.apply(predictions_3d)
     if exercise_type == "Plank":
         angles = [get_plank_angle(predictions_3d), "Plank angle (between thorax, hip, and knees): "]
     elif exercise_type == "Squat":
         angles = [np.mean(get_squat_angle(predictions_3d)), "Squat angle (between hip, knees, and ankles): "]
 
-    img = show_3D_pose(predictions_3d, angles, keypoints_2d_orig, img, show=False, azim=0, elev=-90)
+    #img = show_3D_pose(predictions_3d, angles, keypoints_2d_orig, img, show=True, azim=-90, elev=-90) #h36m
+    img = show_3D_pose(predictions_3d, angles, keypoints_2d_orig, img, show=False, azim=180, elev=0)
     return img
 
 class S(BaseHTTPRequestHandler):
@@ -116,7 +117,7 @@ def run(server_class=HTTPServer, handler_class=S, port=3002):
     logging.info('Stopping httpd...\n')
 
 if __name__ == '__main__':
-    eval_checkpoint = os.path.join(os.path.dirname(__file__),'../pose_detector_3d/checkpoints/2022-03-03_20-49-48/ckpt_best.pth.tar')
+    eval_checkpoint = os.path.join(os.path.dirname(__file__),'../pose_detector_3d/checkpoints/2022-03-03_20-49-48/ckpt_epoch_0300.pth.tar')
 
     ckpt = torch.load(eval_checkpoint, map_location=DEVICE)
     PREDICTOR_3D.load_state_dict(ckpt['state_dict'])

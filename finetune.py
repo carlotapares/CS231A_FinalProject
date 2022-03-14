@@ -16,7 +16,7 @@ from pose_detector_3d.data.prepare_data_2d_h36m_sh import SH_TO_GT_PERM
 
 INFINITEFORM_MPII_NAMES = [
     'right_ankle', 'right_knee', 'right_hip', 'left_hip',
-    'left_knee', 'left_ankle', 'pelvis', 'root',
+    'left_knee', 'left_ankle', 'pelvis', 'spine2',
     'neck', 'head', 'right_wrist', 'right_elbow',
     'right_shoulder', 'left_shoulder', 'left_elbow', 'left_wrist'
 ]
@@ -33,17 +33,17 @@ def preprocess_infiniteform_annotations(annot_path):
     image_name = {}
     for im in annotations['images']:
         id = im['id']
-        name = str(int(im['file_name'].split('.')[1]))
-        #name = str(int(im['file_name'].split('.')[0]))
-        #image_name[id] = (name, im['camera_location'], im['camera_pitch'], im['avatar_exercise'].lower())
-        image_name[id] = (name, im['camera_location'], im['camera_pitch'], im['avatar_yaw'])
+        #name = str(int(im['file_name'].split('.')[1]))
+        name = str(int(im['file_name'].split('.')[0]))
+        image_name[id] = (name, im['camera_location'], im['camera_pitch'], im['camera_yaw'], im['camera_roll'], im['avatar_exercise'].lower())
+        #image_name[id] = (name, im['camera_location'], im['camera_pitch'], im['avatar_yaw'])
 
     annot = {}
     for im in annotations['annotations']:
         if im['percent_in_fov'] != 100.0:
             continue
-        #id, camera_t, camera_p, exercise = image_name[im['image_id']]
-        id, camera_t, camera_p, camera_y = image_name[im['image_id']]
+        id, camera_t, camera_p, camera_y, camera_r, exercise = image_name[im['image_id']]
+        #id, camera_t, camera_p, camera_y = image_name[im['image_id']]
         keypoints_2d = np.zeros((len(INFINITEFORM_MPII_NAMES),2))
         keypoints_3d = np.zeros((len(INFINITEFORM_MPII_NAMES),3))
         
@@ -55,8 +55,9 @@ def preprocess_infiniteform_annotations(annot_path):
                 x,y,z = v['x_global'], v['y_global'], v['z_global']
                 keypoints_3d[INFINITEFORM_MPII_NAMES.index(k)] = (x,y,z)
 
-        #annot[id] = {'keypoints': keypoints_2d, 'keypoints_3d': keypoints_3d, 'camera_t': camera_t, 'camera_pitch': camera_p, 'exercise': exercise}
-        annot[id] = {'keypoints': keypoints_2d, 'keypoints_3d': keypoints_3d, 'camera_t': camera_t, 'camera_pitch': camera_p, 'camera_yaw': camera_y}
+        annot[id] = {'keypoints': keypoints_2d, 'keypoints_3d': keypoints_3d, 'camera_t': camera_t, \
+             'camera_pitch': camera_p, 'camera_yaw': camera_y, 'camera_roll': camera_r, 'exercise': exercise}
+        #annot[id] = {'keypoints': keypoints_2d, 'keypoints_3d': keypoints_3d, 'camera_t': camera_t, 'camera_pitch': camera_p, 'camera_yaw': camera_y}
     
     outfile = '.'.join(annot_path.split('.')[:-1]) + '_clean.json'
     with open(outfile, 'w') as f:
@@ -81,8 +82,8 @@ def evaluate_inf_validation_accuracy(annot, preds, img_idx):
     return np.mean(less_than_threshold)
 
 def compute_keypoints_3D(annot, idx):
-    camera_t, pitch, yaw = annot[idx]['camera_t'], annot[idx]['camera_pitch'], annot[idx]['camera_yaw']
-    camera_r = Rotation.from_euler('x', [pitch], degrees=True).as_quat()
+    camera_t, pitch, yaw, roll = annot[idx]['camera_t'], annot[idx]['camera_pitch'], annot[idx]['camera_yaw'], annot[idx]['camera_roll']
+    camera_r = Rotation.from_euler('xyz', [pitch, roll, yaw], degrees=True).as_quat()
 
     keypoints_3d_gt = np.array(annot[idx]['keypoints_3d'])
     keypoints_3d_gt = keypoints_3d_gt[SH_TO_GT_PERM, :]
@@ -106,8 +107,8 @@ def compute_keypoints_2D(annot_path, images_path):
         if 'json' in img_name:
             continue
 
-        #idx = str(int(img_name.split(".")[0]))
-        idx = str(int(img_name.split(".")[1]))
+        idx = str(int(img_name.split(".")[0]))
+        #idx = str(int(img_name.split(".")[1]))
 
         if idx not in list(annot.keys()):
             continue
@@ -122,10 +123,9 @@ def compute_keypoints_2D(annot_path, images_path):
         joints_8 = predictor_8.estimate_joints(img_tensor, flip=True)
         
         pck_8 = evaluate_inf_validation_accuracy(annot, joints_8, idx)
-        if pck_8 >= 0.5:
+        if pck_8 >= 0.6:
             all_preds.append(joints_8.numpy())
             inf_form_filenames.append(idx)
-            #inf_form_filenames.append(str(int(img_name.split(".")[0])))
 
     d = {}
     for i in range(len(all_preds)):
@@ -140,17 +140,17 @@ def compute_keypoints_2D(annot_path, images_path):
 
 if __name__ == '__main__':
     
-    annot_path = 'pose_detector_3d/data/infiniteform2/annotations.json'
+    '''annot_path = 'pose_detector_3d/data/infiniteform/annotations.json'
     annot_clean_path = preprocess_infiniteform_annotations(annot_path)
 
-    images_path = 'pose_detector_3d/data/infiniteform2/'
-    keypoints_2D_3D_path = compute_keypoints_2D(annot_clean_path, images_path)
+    images_path = 'pose_detector_3d/data/infiniteform/images/'
+    keypoints_2D_3D_path = compute_keypoints_2D(annot_clean_path, images_path)'''
 
-    keypoints_2D_3D_path = 'pose_detector_3d/data/infiniteform2_keypoints_2d_3d.npy'
+    keypoints_2D_3D_path = 'pose_detector_3d/data/infiniteform_keypoints_2d_3d.npy'
 
     cmd = ['python', 'pose_detector_3d/train.py', 'dataset', 'infiniteform', 'train_checkpoint', \
         'pose_detector_3d/checkpoints/2022-03-03_20-49-48/ckpt_best.pth.tar', 'train_dataset', keypoints_2D_3D_path, \
-            'epochs', '200']
+            'epochs', '300']
     
     stream = os.popen(' '.join(cmd))
     print(stream.read())
