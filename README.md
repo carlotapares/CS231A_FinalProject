@@ -11,16 +11,5 @@ Ben Alexander, Carlota Parés-Morlans
 </p>
 </div>
 
-#### <div align="center">Project Tree</div>
 
-```
-.
-|-- ./data
-|-- ./out
-|-- ./src
-    |-- ./src/utils
-    |-- ./src/EfficientPose Inference.ipynb
-    |-- ./src/Hourglass Inference.ipynb
-    `-- ./src/SemGCN.ipynb
-```
-![image](https://drive.google.com/uc?export=view&id=1y_1m38yJwuhZuDKSdHbTQp6fBZjMXTIz)
+![image](demo.gif)
